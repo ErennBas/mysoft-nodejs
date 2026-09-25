@@ -10,6 +10,8 @@ import {
 	ReceiptAdviceResponse,
 } from "../types/despatch.types";
 import { DateHelper } from "../utils/date-helper";
+import { InboxDespatchPoller } from "../watcher/inbox-despatch-poller";
+import { InboxDespatchPollerOptions } from "../watcher/types";
 
 /**
  * E-İrsaliye, Giden ve Gelen İrsaliye ve İrsaliye Yanıtları Servisi
@@ -1201,5 +1203,16 @@ export class DespatchService extends BaseService {
 			data,
 			config
 		);
+	}
+
+	/**
+	 * Yeni gelen e-İrsaliyeleri periyodik olarak kontrol eden,
+	 * event ve webhook olarak dağıtan Poller / Watcher örneği oluşturur.
+	 *
+	 * @param options - Polling süresi, otomatik onaylama (autoAck), Redis ve webhook ayarları
+	 * @returns InboxDespatchPoller
+	 */
+	public createInboxPoller(options?: InboxDespatchPollerOptions): InboxDespatchPoller {
+		return new InboxDespatchPoller(this, options);
 	}
 }

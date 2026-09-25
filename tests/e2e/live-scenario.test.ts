@@ -78,14 +78,17 @@ describe.skipIf(!isLiveTest)("Mysoft E2E Live Test Scenario (TEST Environment)",
 			type: InvoiceType.SATIS,
 			prefix: "ADZ",
 			ettn: testEttn,
-			issueDate: new Date().toISOString().split("T")[0],
+			issueDate: new Date(),
+			issueTime: new Date(),
 			buyer: {
 				vknTckn: process.env.MYSOFT_TEST_BUYER_TCKN || "11742049738",
 				title: "mysoft-nodejs-sdk E2E Test Müşterisi",
+				taxOffice: "Kadıköy Vergi Dairesi",
 				country: "TÜRKİYE",
 				city: "İstanbul",
 				district: "Kadıköy",
 				address: "Moda Cad. No:1",
+				email: process.env.MYSOFT_TEST_BUYER_EMAIL || "test-sdk@mysoft.com.tr",
 			},
 			lines: [
 				{
@@ -96,10 +99,37 @@ describe.skipIf(!isLiveTest)("Mysoft E2E Live Test Scenario (TEST Environment)",
 					vatRate: 20,
 				},
 			],
+			notes: ["E2E Test Faturası"],
 		});
 
 		expect(result).toBeDefined();
 		expect(result.succeed).toBe(true);
 		expect(result.data?.uuid || result.data?.invoiceNumber).toBeDefined();
+	});
+
+	it("5. should successfully query live inbox poller with events", async () => {
+		const poller = client.createInboxInvoicePoller({
+			autoAck: false,
+			intervalMs: 10000,
+		});
+
+		let pollStartFired = false;
+		let pollEndFired = false;
+
+		poller.on("poll:start", () => {
+			pollStartFired = true;
+		});
+
+		poller.on("poll:end", () => {
+			pollEndFired = true;
+		});
+
+		const items = await poller.pollNow();
+		expect(Array.isArray(items)).toBe(true);
+		expect(pollStartFired).toBe(true);
+		expect(pollEndFired).toBe(true);
+
+		const stats = poller.getStatus();
+		expect(stats.totalErrors).toBe(0);
 	});
 });

@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
+import * as http from "http";
 import {
 	MysoftClient,
 	InvoiceProfile,
@@ -8,6 +9,7 @@ import {
 	UnitCode,
 	UuidHelper,
 	Validators,
+	WebhookForwarder,
 } from "../src";
 
 // 1. .env veya .env.test dosyasını yükle
@@ -66,7 +68,7 @@ async function main() {
 		// =====================================================================
 		// ADIM 1: Kimlik Doğrulama & Token Alımı
 		// =====================================================================
-		console.log("👉 [1/6] Kimlik Doğrulama (Auth Token Alımı) yapılıyor...");
+		console.log("👉 [1/8] Kimlik Doğrulama (Auth Token Alımı) yapılıyor...");
 		const token = await client.tokenManager.getToken();
 		console.log(`✅ Token başarıyla alındı: ${token.substring(0, 25)}... (Geçerlilik: 300 sn)\n`);
 
@@ -76,7 +78,7 @@ async function main() {
 		const testVkn = process.env.MYSOFT_TEST_BUYER_VKN || "6271036106";
 		const testTckn = process.env.MYSOFT_TEST_BUYER_TCKN || "11742049738";
 
-		console.log(`👉 [2/6] Mükellef Sorgulamaları yapılıyor...`);
+		console.log(`👉 [2/8] Mükellef Sorgulamaları yapılıyor...`);
 		console.log(`   - VKN (${testVkn}) Checksum: ${Validators.isValidVkn(testVkn) ? "GEÇERLİ" : "GEÇERSİZ"}`);
 		console.log(`   - TCKN (${testTckn}) Checksum: ${Validators.isValidTckn(testTckn) ? "GEÇERLİ" : "GEÇERSİZ"}`);
 
@@ -98,7 +100,7 @@ async function main() {
 		// =====================================================================
 		// ADIM 3: E-Arşiv Fatura Kesme (mysoft-nodejs-sdk İsimli)
 		// =====================================================================
-		console.log("👉 [3/6] E-Arşiv Fatura Kesiliyor (Panelde: 'mysoft-nodejs-sdk Test Faturası')...");
+		console.log("👉 [3/8] E-Arşiv Fatura Kesiliyor (Panelde: 'mysoft-nodejs-sdk Test Faturası')...");
 		const eArchiveEttn = UuidHelper.generateEttn();
 
 		const eArchiveInvoiceData = {
@@ -140,7 +142,7 @@ async function main() {
 		// =====================================================================
 		// ADIM 4: E-Fatura (Ticari) Kesme
 		// =====================================================================
-		console.log("👉 [4/6] E-Fatura (Ticari) Kesiliyor (Panelde: 'mysoft-nodejs-sdk Test Ticari Fatura')...");
+		console.log("👉 [4/8] E-Fatura (Ticari) Kesiliyor (Panelde: 'mysoft-nodejs-sdk Test Ticari Fatura')...");
 		const eInvoiceEttn = UuidHelper.generateEttn();
 
 		const eInvoiceData = {
@@ -180,7 +182,7 @@ async function main() {
 		// =====================================================================
 		// ADIM 5: Giden Faturaları Listeleme
 		// =====================================================================
-		console.log("👉 [5/7] Giden Fatura Listesi Sorgulanıyor (getInvoiceWithHeaderInfoList)...");
+		console.log("👉 [5/8] Giden Fatura Listesi Sorgulanıyor (getInvoiceWithHeaderInfoList)...");
 		try {
 			const today = new Date().toISOString().split("T")[0];
 			const list = await client.invoices.getInvoiceWithHeaderInfoList({
@@ -201,7 +203,7 @@ async function main() {
 		// =====================================================================
 		console.log("⏳ Faturanın sistemde işlenip arşivlenmesi için 3 saniye bekleniyor...");
 		await new Promise((resolve) => setTimeout(resolve, 3000));
-		console.log("👉 [6/7] Fatura Belgesi İndirme ve Durum Sorgulanıyor...");
+		console.log("👉 [6/8] Fatura Belgesi İndirme ve Durum Sorgulanıyor...");
 
 		try {
 			const publicUrl = await client.invoices.getInvoiceOutboxPublicUrl({ invoiceETTN: eArchiveEttn });
@@ -242,15 +244,22 @@ async function main() {
 		// =====================================================================
 		// ADIM 7: E-İrsaliye (Despatch) Oluşturma ve Listeleme
 		// =====================================================================
-		console.log("👉 [7/7] E-İrsaliye (Despatch) Modülü Test Ediliyor...");
-		const despatchEttn = UuidHelper.generateEttn();
-		console.log(`ℹ️ Üretilen İrsaliye ETTN: ${despatchEttn}`);
+		console.log("👉 [7/8] E-İrsaliye (Despatch) Modülü Test Ediliyor...");
 
 		try {
 			console.log("📝 Örnek İrsaliye Şablonu Çekiliyor...");
 			const sampleDespatch = await client.despatches.createDespatchTestJson();
 			if (sampleDespatch) {
+				const now = new Date();
+				const todayStr = now.toISOString().split("T")[0];
+				const timeStr = now.toTimeString().split(" ")[0];
+
 				sampleDespatch.prefix = "ERR";
+				sampleDespatch.docDate = todayStr;
+				sampleDespatch.docTime = timeStr;
+				sampleDespatch.actualReferalDate = todayStr;
+				sampleDespatch.actualReferalTime = timeStr;
+
 				if (sampleDespatch.account) {
 					sampleDespatch.account.identifierNumber = testVkn;
 					sampleDespatch.account.accountName = "MYSOFT DİJİTAL DÖNÜŞÜM A.Ş. (mysoft-nodejs-sdk İrsaliye Testi)";
@@ -281,6 +290,113 @@ async function main() {
 			}
 		} catch (err: any) {
 			console.warn("⚠️ Giden İrsaliye listeleme:", err.response?.data || err.message);
+		}
+
+		// =====================================================================
+		// ADIM 8: Gelen Fatura / Webhook Simülatörü & Poller Canlı Testi
+		// =====================================================================
+		console.log("\n👉 [8/8] Gelen Fatura Webhook & Poller Sistemi Test Ediliyor...");
+		const webhookPort = 3987;
+		const webhookSecret = "live_test_mysoft_secret_2026";
+		let receivedWebhookData: any = null;
+		let receivedWebhookSig: string | null = null;
+		let signatureVerified = false;
+
+		// 1. Yerel Webhook Alıcı Sunucusunu Başlat
+		const webhookServer = http.createServer((req, res) => {
+			if (req.method === "POST" && req.url === "/webhooks/invoices") {
+				let rawBody = "";
+				req.on("data", (chunk) => {
+					rawBody += chunk;
+				});
+				req.on("end", () => {
+					receivedWebhookSig = (req.headers["x-mysoft-signature"] as string) || null;
+					signatureVerified = WebhookForwarder.verifySignature(
+						rawBody,
+						webhookSecret,
+						receivedWebhookSig || ""
+					);
+					try {
+						receivedWebhookData = JSON.parse(rawBody);
+					} catch {
+						receivedWebhookData = rawBody;
+					}
+					res.writeHead(200, { "Content-Type": "application/json" });
+					res.end(JSON.stringify({ status: "ok", received: true }));
+				});
+			} else {
+				res.writeHead(404);
+				res.end();
+			}
+		});
+
+		await new Promise<void>((resolve) => webhookServer.listen(webhookPort, () => resolve()));
+		console.log(`🌐 Yerel Webhook Alıcı Sunucusu Başlatıldı: http://127.0.0.1:${webhookPort}/webhooks/invoices`);
+
+		try {
+			// 2. Canlı Mysoft API Poller Oluştur
+			const poller = client.createInboxInvoicePoller({
+				intervalMs: 10000,
+				autoAck: false, // Canlı test ortamında gelen faturayı silmeyelim
+				webhooks: [
+					{
+						url: `http://127.0.0.1:${webhookPort}/webhooks/invoices`,
+						secret: webhookSecret,
+					},
+				],
+				socketIo: {
+					emit: (event: string, ...args: any[]) => {
+						console.log(`   📡 [Socket.IO Canlı Yayın] Olay: ${event}, Belge:`, args[0]?.docNo || args[0]?.ettn || "veri");
+					},
+				},
+			});
+
+			poller.on("invoice", (inv) => {
+				console.log(`   📥 [Poller Event - invoice]: ${inv.docNo} (${inv.accountName || "Alıcı"}) - Tutar: ${inv.payableAmount}`);
+			});
+
+			poller.on("batch", (batch) => {
+				console.log(`   📦 [Poller Event - batch]: Toplam ${batch.length} yeni gelen fatura yakalandı`);
+			});
+
+			poller.on("error", (err) => {
+				console.warn(`   ⚠️ [Poller Hata Eventi]:`, err.message);
+			});
+
+			console.log("🔍 Canlı API üzerinden gelen fatura havuzu taranıyor (pollNow)...");
+			const polledItems = await poller.pollNow();
+			console.log(`✅ Canlı API Yanıtı: ${polledItems.length} adet yeni gelen fatura bulundu.`);
+
+			// 3. Webhook İletimini ve İmzalamayı Doğrula
+			console.log("🚀 Webhook İletim ve HMAC-SHA256 İmza Doğrulaması yapılıyor...");
+			const testEventData = {
+				ettn: eInvoiceEttn,
+				docNo: "MYZ2026000000001",
+				accountName: "MYSOFT DİJİTAL DÖNÜŞÜM A.Ş.",
+				payableAmount: 1200,
+				currencyCode: "TRY",
+			};
+
+			const dispatchResults = await WebhookForwarder.dispatchAll(
+				[
+					{
+						url: `http://127.0.0.1:${webhookPort}/webhooks/invoices`,
+						secret: webhookSecret,
+					},
+				],
+				"mysoft.invoice.received",
+				testEventData
+			);
+
+			console.log("📤 Webhook İletim Sonucu:", JSON.stringify(dispatchResults, null, 2));
+
+			// Sunucuya gelen isteği doğrula
+			await new Promise((resolve) => setTimeout(resolve, 300));
+			console.log(`🔒 HMAC-SHA256 İmza Başlığı: ${receivedWebhookSig}`);
+			console.log(`🛡️ İmza Doğrulama Sonucu   : ${signatureVerified ? "✅ GEÇERLİ (Doğrulandı)" : "❌ GEÇERSİZ"}`);
+			console.log(`📥 Webhook Alınan Veri     :`, JSON.stringify(receivedWebhookData, null, 2));
+		} finally {
+			webhookServer.close();
 		}
 
 		console.log("\n==================================================================");

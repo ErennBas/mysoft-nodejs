@@ -13,6 +13,7 @@
 
 - **100% API Kapsamı:** Mysoft API v8'deki tüm 311 endpoint ve 544 şemanın tamamı SDK içinde tip güvenli olarak yer alır.
 - **Normal (JSON) & UBL-TR XML Fatura Desteği:** İster basit JavaScript nesneleriyle tek fonksiyonda fatura kesin, ister ham UBL-TR XML kullanın.
+- **Gelen Fatura / Webhook Simülatörü & Event Emitter:** Mysoft API'lerinde webhook bulunmadığından; arka planda akıllı polling, otomatik onay (Auto-Ack), Redis ile dağıtık lider seçimi (Mutex) & Pub/Sub yayını, Socket.IO ve HTTP Webhook iletimi sunar.
 - **Akıllı Token Yönetimi:** 5 dakikalık kısa ömürlü token'ları arka planda otomatik yeniler; eşzamanlı isteklerde mükerrer token taleplerini (Thundering Herd) Mutex Lock ile engeller.
 - **Esnek Önbellek Katmanı:** Varsayılan dahili bellek içi (In-Memory) önbellek veya mikroservis/küme mimarileri için Redis (`ioredis` / `redis`) adaptörü.
 - **Çift Modül Desteği (Dual CJS/ESM):** Hem ESM (`import`) hem de CommonJS (`require`) projeleriyle tam uyumlu.
@@ -167,6 +168,48 @@ await client.invoices.cancelEArchiveInvoice({
 	uuid: "4ad402f0-b951-4aa2-acd6-6b6d74a79a10",
 	cancelReason: "Hatalı fatura düzenlendi",
 });
+```
+
+#### B. Gelen Fatura Webhook & Poller (Canlı Event & Redis Desteği)
+
+Mysoft API'lerinde yerel bir webhook bulunmadığından; `InboxInvoicePoller` arka planda düzenli aralıklarla yeni gelen faturaları sorgular, uygulamanıza typed EventEmitter olarak yayar, Socket.IO ile canlı web/mobil istemcilere aktarır veya HTTP Webhook uç noktalarınıza güvenli HMAC imzasıyla yönlendirir:
+
+```typescript
+// 1. Poller örneği oluşturun
+const poller = client.createInboxInvoicePoller({
+	intervalMs: 15000, // 15 saniyede bir kontrol et
+	autoAck: true, // Alınan faturayı portalda otomatik 'Kaydedildi' (SavedByCustomer) olarak onaylar
+	// Opsiyonel: Mikroservis / Cluster ortamlarında Redis ile lider seçimi ve Pub/Sub
+	redis: redisClient,
+	// Opsiyonel: Harici sistemlerinize webhook POST istekleri
+	webhooks: [
+		{
+			url: "https://erp.sirketim.com/api/webhooks/incoming-invoices",
+			secret: "webhook_gizli_anahtari", // X-Mysoft-Signature ile imzalanır
+		},
+	],
+	// Opsiyonel: Socket.IO ile frontend'e anlık aktarım
+	socketIo: io,
+});
+
+// 2. Event dinleyicilerini tanımlayın
+poller.on("invoice", async (invoice) => {
+	console.log(`📥 Yeni Gelen Fatura: ${invoice.docNo} - ${invoice.accountName}`);
+	console.log(`Ödenecek Tutar: ${invoice.payableAmount} ${invoice.currencyCode}`);
+
+	// Faturanın UBL XML veya PDF verisini indirmek isterseniz:
+	// const xml = await poller.getInvoiceXml(invoice.ettn!);
+});
+
+poller.on("error", (err) => {
+	console.error("Poller hatası:", err.message);
+});
+
+// 3. Başlatın
+await poller.start();
+
+// İhtiyaç duyulduğunda durdurmak için:
+// await poller.stop();
 ```
 
 ---
