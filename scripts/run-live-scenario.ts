@@ -106,7 +106,8 @@ async function main() {
 			type: InvoiceType.SATIS,
 			prefix: "ADZ", // Paneldeki e-Arşiv prefix serisi (ADZ)
 			ettn: eArchiveEttn,
-			issueDate: new Date().toISOString().split("T")[0],
+			issueDate: new Date(),
+			issueTime: new Date(),
 			buyer: {
 				vknTckn: "11742049738",
 				title: "mysoft-nodejs-sdk (E-Arşiv Test Faturası)",
@@ -147,7 +148,8 @@ async function main() {
 			type: InvoiceType.SATIS,
 			prefix: "MYZ", // Paneldeki e-Fatura prefix serisi
 			ettn: eInvoiceEttn,
-			issueDate: new Date().toISOString().split("T")[0],
+			issueDate: new Date(),
+			issueTime: new Date(),
 			buyer: {
 				vknTckn: testVkn,
 				title: "MYSOFT DİJİTAL DÖNÜŞÜM A.Ş. (mysoft-nodejs-sdk Testi)",

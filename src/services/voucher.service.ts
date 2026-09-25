@@ -9,6 +9,7 @@ import {
 	VoucherSendResponse,
 } from "../types/voucher.types";
 import { SendInvoiceWithUblXmlRequest, SendInvoiceResponse } from "../types/invoice.types";
+import { DateHelper } from "../utils/date-helper";
 
 /**
  * E-Adisyon, E-Dekont, E-Döviz ve E-Gider Pusulası İşlemleri Servisi
@@ -19,7 +20,11 @@ export class VoucherService extends BaseService {
 	 * E-SMM (Elektronik Serbest Meslek Makbuzu) gönderir.
 	 */
 	public async sendFreelancerVoucher(request: SendFreelancerVoucherRequest): Promise<ApiResult<VoucherSendResponse>> {
-		return await this.httpClient.post<ApiResult<VoucherSendResponse>>("/api/Receipt/receiptOutbox", request);
+		const payload = {
+			...request,
+			issueDate: DateHelper.toDateString(request.issueDate) || DateHelper.today(),
+		};
+		return await this.httpClient.post<ApiResult<VoucherSendResponse>>("/api/Receipt/receiptOutbox", payload);
 	}
 
 	/**
@@ -39,9 +44,13 @@ export class VoucherService extends BaseService {
 	 * E-Müstahsil Makbuzu gönderir.
 	 */
 	public async sendProducerReceipt(request: SendProducerReceiptRequest): Promise<ApiResult<VoucherSendResponse>> {
+		const payload = {
+			...request,
+			issueDate: DateHelper.toDateString(request.issueDate) || DateHelper.today(),
+		};
 		return await this.httpClient.post<ApiResult<VoucherSendResponse>>(
 			"/api/ExpenseNote/expenseNoteOutbox",
-			request
+			payload
 		);
 	}
 
@@ -64,9 +73,13 @@ export class VoucherService extends BaseService {
 	 * E-Gider Pusulası belgesi gönderir.
 	 */
 	public async sendExpenseNote(request: SendExpenseNoteRequest): Promise<ApiResult<VoucherSendResponse>> {
+		const payload = {
+			...request,
+			issueDate: DateHelper.toDateString(request.issueDate) || DateHelper.today(),
+		};
 		return await this.httpClient.post<ApiResult<VoucherSendResponse>>(
 			"/api/ExpenseNote/expenseNoteOutbox",
-			request
+			payload
 		);
 	}
 

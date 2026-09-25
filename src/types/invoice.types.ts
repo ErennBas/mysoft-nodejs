@@ -158,14 +158,14 @@ export interface SendInvoiceJsonRequest {
 	gbAlias?: string;
 
 	/**
-	 * Fatura Düzenleme Tarihi (YYYY-MM-DD)
+	 * Fatura Düzenleme Tarihi (YYYY-MM-DD veya Date nesnesi)
 	 */
-	issueDate: string;
+	issueDate: string | Date;
 
 	/**
-	 * Fatura Düzenleme Saati (HH:mm:ss, opsiyonel)
+	 * Fatura Düzenleme Saati (HH:mm:ss veya Date nesnesi, opsiyonel)
 	 */
-	issueTime?: string;
+	issueTime?: string | Date;
 
 	/**
 	 * Para Birimi (Varsayılan: TRY)
@@ -202,7 +202,7 @@ export interface SendInvoiceJsonRequest {
 	 */
 	orderReference?: {
 		orderId: string;
-		issueDate?: string;
+		issueDate?: string | Date;
 	};
 
 	/**
@@ -210,7 +210,7 @@ export interface SendInvoiceJsonRequest {
 	 */
 	despatchReferences?: Array<{
 		despatchId: string;
-		issueDate?: string;
+		issueDate?: string | Date;
 	}>;
 
 	/**
@@ -220,7 +220,7 @@ export interface SendInvoiceJsonRequest {
 		paymentMeansCode?: PaymentMeansCode | string;
 		payeeIban?: string;
 		payeeBankName?: string;
-		dueDate?: string;
+		dueDate?: string | Date;
 	};
 
 	/**
@@ -229,10 +229,10 @@ export interface SendInvoiceJsonRequest {
 	internetSalesInfo?: {
 		webAddress: string;
 		paymentType: string;
-		paymentDate: string;
+		paymentDate: string | Date;
 		cargoFirmTitle: string;
 		cargoFirmVknTckn: string;
-		deliveryDate?: string;
+		deliveryDate?: string | Date;
 	};
 }
 
@@ -344,8 +344,8 @@ export interface InvoiceCancelRequest {
 	uuid: string;
 	/** İptal Nedeni / Açıklaması */
 	cancelReason: string;
-	/** İptal Tarihi (YYYY-MM-DD, opsiyonel) */
-	cancelDate?: string;
+	/** İptal Tarihi (YYYY-MM-DD veya Date nesnesi, opsiyonel) */
+	cancelDate?: string | Date;
 	/** E-Belge Türü (EARSIV veya EFATURA) */
 	eDocumentType?: EDocumentType | string;
 }
