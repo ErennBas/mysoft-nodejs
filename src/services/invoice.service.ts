@@ -13,7 +13,7 @@ import {
 } from "../types/invoice.types";
 import { InvoiceProfile, InvoiceType, EDocumentType } from "../types/enums";
 import { UuidHelper } from "../utils/uuid";
-import { DateHelper } from "../utils/date-helper";
+import { DateHelper, DateInput } from "../utils/date-helper";
 
 /**
  * SendInvoiceJsonRequest nesnesini Mysoft API InvoiceOutboxModel formatına normalize eder.
@@ -23,9 +23,9 @@ function normalizeJsonInvoiceRequest(
 ): Record<string, unknown> {
 	if ("invoiceDetail" in request || "invoiceAccount" in request) {
 		const raw = { ...(request as Record<string, unknown>) };
-		if (raw.docDate) raw.docDate = DateHelper.toDateString(raw.docDate as any);
-		if (raw.docTime) raw.docTime = DateHelper.toTimeString(raw.docTime as any);
-		if (raw.orderDate) raw.orderDate = DateHelper.toDateString(raw.orderDate as any);
+		if (raw.docDate) raw.docDate = DateHelper.toDateString(raw.docDate as DateInput);
+		if (raw.docTime) raw.docTime = DateHelper.toTimeString(raw.docTime as DateInput);
+		if (raw.orderDate) raw.orderDate = DateHelper.toDateString(raw.orderDate as DateInput);
 		return raw;
 	}
 

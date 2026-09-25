@@ -315,4 +315,3 @@ describe("InvoiceService", () => {
 		postSpy.mockRestore();
 	});
 });
-
