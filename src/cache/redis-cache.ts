@@ -8,6 +8,14 @@ export interface GenericRedisClient {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	set(key: string, value: string, ...args: any[]): Promise<any>;
 	del(key: string | string[]): Promise<number>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	publish?(channel: string, message: string): Promise<any>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	subscribe?(...args: any[]): Promise<any> | any;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	duplicate?(): any;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	eval?(script: string, ...args: any[]): Promise<any>;
 }
 
 /**

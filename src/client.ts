@@ -16,6 +16,9 @@ import { CampaignService } from "./services/campaign.service";
 import { ReconciliationService } from "./services/reconciliation.service";
 import { OrderService } from "./services/order.service";
 import { IframeService } from "./services/iframe.service";
+import { InboxInvoicePoller } from "./watcher/inbox-invoice-poller";
+import { InboxDespatchPoller } from "./watcher/inbox-despatch-poller";
+import { InboxInvoicePollerOptions, InboxDespatchPollerOptions } from "./watcher/types";
 
 /**
  * Mysoft GİB E-Dönüşüm SDK Ana İstemcisi.
@@ -211,5 +214,40 @@ export class MysoftClient {
 	 */
 	public async clearToken(): Promise<void> {
 		await this.tokenManager.clearToken();
+	}
+
+	/**
+	 * Yeni gelen e-Fatura ve e-Arşiv faturaları için otomatik sorgulama (polling),
+	 * event yayımı, webhook iletimi ve opsiyonel Redis dağıtık kilit/pub-sub yöneticisi oluşturur.
+	 *
+	 * @param options - Polling süresi, otomatik onaylama (autoAck), Redis ve webhook ayarları
+	 * @returns InboxInvoicePoller
+	 *
+	 * @example
+	 * ```typescript
+	 * const poller = client.createInboxInvoicePoller({
+	 *     intervalMs: 30000,
+	 *     autoAck: true
+	 * });
+	 *
+	 * poller.on('invoice', (inv) => {
+	 *     console.log('Yeni gelen fatura:', inv.docNo, inv.payableAmount);
+	 * });
+	 *
+	 * await poller.start();
+	 * ```
+	 */
+	public createInboxInvoicePoller(options?: InboxInvoicePollerOptions): InboxInvoicePoller {
+		return this.invoices.createInboxPoller(options);
+	}
+
+	/**
+	 * Yeni gelen e-İrsaliyeler için otomatik sorgulama (polling) ve event yöneticisi oluşturur.
+	 *
+	 * @param options - Polling süresi, otomatik onaylama (autoAck), Redis ve webhook ayarları
+	 * @returns InboxDespatchPoller
+	 */
+	public createInboxDespatchPoller(options?: InboxDespatchPollerOptions): InboxDespatchPoller {
+		return this.despatches.createInboxPoller(options);
 	}
 }

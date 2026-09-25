@@ -13,4 +13,5 @@ export * from "./cache";
 export * from "./errors";
 export * from "./types";
 export * from "./services";
+export * from "./watcher";
 export * from "./utils";

@@ -14,6 +14,8 @@ import {
 import { InvoiceProfile, InvoiceType, EDocumentType } from "../types/enums";
 import { UuidHelper } from "../utils/uuid";
 import { DateHelper, DateInput } from "../utils/date-helper";
+import { InboxInvoicePoller } from "../watcher/inbox-invoice-poller";
+import { InboxInvoicePollerOptions } from "../watcher/types";
 
 /**
  * SendInvoiceJsonRequest nesnesini Mysoft API InvoiceOutboxModel formatına normalize eder.
@@ -1444,5 +1446,26 @@ export class InvoiceService extends BaseService {
 			`/api/InvoiceOutbox/createInvoiceOutboxTestJson`,
 			config
 		);
+	}
+
+	/**
+	 * Yeni gelen e-Fatura ve e-Arşiv faturalarını periyodik olarak kontrol eden,
+	 * event ve webhook olarak dağıtan Poller / Watcher örneği oluşturur.
+	 *
+	 * @param options - Polling süresi, otomatik onaylama (autoAck), Redis ve webhook ayarları
+	 * @returns InboxInvoicePoller
+	 *
+	 * @example
+	 * ```typescript
+	 * const poller = client.invoices.createInboxPoller({
+	 *     intervalMs: 15000,
+	 *     autoAck: true
+	 * });
+	 * poller.on('invoice', (inv) => console.log('Gelen fatura:', inv.docNo));
+	 * await poller.start();
+	 * ```
+	 */
+	public createInboxPoller(options?: InboxInvoicePollerOptions): InboxInvoicePoller {
+		return new InboxInvoicePoller(this, options);
 	}
 }
