@@ -1,6 +1,6 @@
 {
 	"name": "mysoft-nodejs",
-	"version": "0.0.4-alpha.0",
+	"version": "0.0.4-alpha.1",
 	"description": "Mysoft GİB E-Dönüşüm (E-Fatura, E-Arşiv, E-İrsaliye, E-SMM, E-Defter vb.) REST API için modern Node.js & TypeScript SDK",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
