@@ -13,6 +13,7 @@ import {
 } from "../types/invoice.types";
 import { InvoiceProfile, InvoiceType, EDocumentType } from "../types/enums";
 import { UuidHelper } from "../utils/uuid";
+import { DateHelper, DateInput } from "../utils/date-helper";
 
 /**
  * SendInvoiceJsonRequest nesnesini Mysoft API InvoiceOutboxModel formatına normalize eder.
@@ -21,7 +22,11 @@ function normalizeJsonInvoiceRequest(
 	request: SendInvoiceJsonRequest | Record<string, unknown>
 ): Record<string, unknown> {
 	if ("invoiceDetail" in request || "invoiceAccount" in request) {
-		return request as Record<string, unknown>;
+		const raw = { ...(request as Record<string, unknown>) };
+		if (raw.docDate) raw.docDate = DateHelper.toDateString(raw.docDate as DateInput);
+		if (raw.docTime) raw.docTime = DateHelper.toTimeString(raw.docTime as DateInput);
+		if (raw.orderDate) raw.orderDate = DateHelper.toDateString(raw.orderDate as DateInput);
+		return raw;
 	}
 
 	const req = request as SendInvoiceJsonRequest;
@@ -83,6 +88,13 @@ function normalizeJsonInvoiceRequest(
 		};
 	});
 
+	const docDate = DateHelper.toDateString(req.issueDate) || DateHelper.today();
+	const docTime = DateHelper.toTimeString(req.issueTime);
+	const orderDate = DateHelper.toDateString(req.orderReference?.issueDate);
+	const paymentDate = DateHelper.toDateString(req.internetSalesInfo?.paymentDate);
+	const deliveryDate = DateHelper.toDateString(req.internetSalesInfo?.deliveryDate);
+	const dueDate = DateHelper.toDateString(req.paymentInfo?.dueDate);
+
 	return {
 		ettn: uuid,
 		profile: profile,
@@ -90,22 +102,35 @@ function normalizeJsonInvoiceRequest(
 		eDocumentType: eDocType,
 		prefix: req.prefix,
 		docNo: req.invoiceNumber,
-		docDate: req.issueDate,
-		docTime: req.issueTime,
+		docDate: docDate,
+		docTime: docTime,
 		currencyCode: req.currencyCode || "TRY",
 		currencyRate: req.exchangeRate || 1,
 		notes: req.notes,
 		pkAlias: req.pkAlias,
 		gbAlias: req.gbAlias,
 		orderNo: req.orderReference?.orderId,
-		orderDate: req.orderReference?.issueDate,
+		orderDate: orderDate,
+		despatchReferences: req.despatchReferences?.map((d) => ({
+			despatchId: d.despatchId,
+			issueDate: DateHelper.toDateString(d.issueDate),
+		})),
+		paymentInfo: req.paymentInfo
+			? {
+					paymentMeansCode: req.paymentInfo.paymentMeansCode,
+					payeeIban: req.paymentInfo.payeeIban,
+					payeeBankName: req.paymentInfo.payeeBankName,
+					dueDate: dueDate,
+				}
+			: undefined,
 		internetShipmentInfo: req.internetSalesInfo
 			? {
 					webAddress: req.internetSalesInfo.webAddress,
 					paymentType: req.internetSalesInfo.paymentType,
-					paymentDate: req.internetSalesInfo.paymentDate,
+					paymentDate: paymentDate,
 					cargoAccountName: req.internetSalesInfo.cargoFirmTitle,
 					cargoNumber: req.internetSalesInfo.cargoFirmVknTckn,
+					deliveryDate: deliveryDate,
 				}
 			: undefined,
 		invoiceAccount,
@@ -222,9 +247,14 @@ export class InvoiceService extends BaseService {
 	/**
 	 * Tarih aralığındaki gelen faturaları listeler.
 	 */
-	public async getInboxInvoicesForPeriod(startDate: string, endDate: string): Promise<ApiResult<InvoiceListItem[]>> {
+	public async getInboxInvoicesForPeriod(
+		startDate: string | Date,
+		endDate: string | Date
+	): Promise<ApiResult<InvoiceListItem[]>> {
+		const sDate = DateHelper.toDateString(startDate) || String(startDate);
+		const eDate = DateHelper.toDateString(endDate) || String(endDate);
 		return await this.httpClient.get<ApiResult<InvoiceListItem[]>>(
-			`/api/InvoiceInbox/getInvoiceInboxListForPeriod?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+			`/api/InvoiceInbox/getInvoiceInboxListForPeriod?startDate=${encodeURIComponent(sDate)}&endDate=${encodeURIComponent(eDate)}`
 		);
 	}
 
@@ -286,9 +316,13 @@ export class InvoiceService extends BaseService {
 	 * E-Arşiv faturasını iptal eder.
 	 */
 	public async cancelEArchiveInvoice(request: InvoiceCancelRequest): Promise<ApiResult<InvoiceCancelResponse>> {
+		const payload = {
+			...request,
+			cancelDate: request.cancelDate ? DateHelper.toDateString(request.cancelDate) : undefined,
+		};
 		return await this.httpClient.post<ApiResult<InvoiceCancelResponse>>(
 			"/api/InvoiceOutbox/cancelEArchiveInvoice",
-			request
+			payload
 		);
 	}
 

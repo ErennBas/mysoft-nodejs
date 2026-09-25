@@ -66,7 +66,6 @@ describe.skipIf(!isLiveTest)("Mysoft E2E Live Test Scenario (TEST Environment)",
 		const list = await client.invoices.getInvoiceWithHeaderInfoList({
 			startDate: "2026-09-01",
 			endDate: new Date().toISOString().split("T")[0],
-			isOutbox: true,
 		});
 		expect(list).toBeDefined();
 		expect(list.succeed).toBe(true);

@@ -93,17 +93,17 @@ export interface SendDespatchJsonRequest {
 	/** İrsaliye Türü (Varsayılan: SEVK) */
 	despatchTypeCode: DespatchType | keyof typeof DespatchType;
 
-	/** İrsaliye Düzenleme Tarihi (YYYY-MM-DD) */
-	issueDate: string;
+	/** İrsaliye Düzenleme Tarihi (YYYY-MM-DD veya Date nesnesi) */
+	issueDate: string | Date;
 
-	/** İrsaliye Düzenleme Saati (HH:mm:ss) */
-	issueTime?: string;
+	/** İrsaliye Düzenleme Saati (HH:mm:ss veya Date nesnesi) */
+	issueTime?: string | Date;
 
-	/** Fiili Sevk Tarihi (YYYY-MM-DD) */
-	actualDespatchDate?: string;
+	/** Fiili Sevk Tarihi (YYYY-MM-DD veya Date nesnesi) */
+	actualDespatchDate?: string | Date;
 
-	/** Fiili Sevk Saati (HH:mm:ss) */
-	actualDespatchTime?: string;
+	/** Fiili Sevk Saati (HH:mm:ss veya Date nesnesi) */
+	actualDespatchTime?: string | Date;
 
 	/** Alıcı Bilgileri */
 	buyer: PartyInfo;
@@ -137,8 +137,8 @@ export interface DespatchResponseRequest {
 	/** Yanıt Durumu (KABUL, RED, KISMIKABUL) */
 	responseStatus: DespatchResponseStatus | keyof typeof DespatchResponseStatus;
 
-	/** Yanıt Düzenleme Tarihi (YYYY-MM-DD) */
-	issueDate: string;
+	/** Yanıt Düzenleme Tarihi (YYYY-MM-DD veya Date nesnesi) */
+	issueDate: string | Date;
 
 	/** Yanıt Açıklaması / Notlar */
 	notes?: string[];

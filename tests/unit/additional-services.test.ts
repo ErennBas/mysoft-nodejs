@@ -38,7 +38,7 @@ describe("Additional Swagger Services Unit Tests", () => {
 
 		await client.accounting.bankAccountBalance({
 			params: { startDate: "2026-01-01", endDate: "2026-01-31" },
-		} as any);
+		} as unknown as Parameters<typeof client.accounting.bankAccountBalance>[0]);
 		expect(getSpy).toHaveBeenCalledWith("/api/PreAccounting/bankAccountBalance", {
 			params: { startDate: "2026-01-01", endDate: "2026-01-31" },
 		});
@@ -46,7 +46,9 @@ describe("Additional Swagger Services Unit Tests", () => {
 		await client.finance.financeDetailedList();
 		expect(getSpy).toHaveBeenCalledWith("/api/Finance/financeDetailedList", undefined);
 
-		await client.finance.createFinanceReceipt({ id: 1 } as any);
+		await client.finance.createFinanceReceipt({ id: 1 } as unknown as Parameters<
+			typeof client.finance.createFinanceReceipt
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith("/api/Finance/createFinanceReceipt", { id: 1 }, undefined);
 
 		getSpy.mockRestore();
@@ -59,10 +61,14 @@ describe("Additional Swagger Services Unit Tests", () => {
 			data: { succeed: true },
 		});
 
-		await client.iys.sendConsent({ recipient: "test@example.com" } as any);
+		await client.iys.sendConsent({ recipient: "test@example.com" } as unknown as Parameters<
+			typeof client.iys.sendConsent
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith("/api/Etk/sendConsent", { recipient: "test@example.com" }, undefined);
 
-		await client.campaigns.sendSMSConsentImmediate({ phone: "5551234567" } as any);
+		await client.campaigns.sendSMSConsentImmediate({ phone: "5551234567" } as unknown as Parameters<
+			typeof client.campaigns.sendSMSConsentImmediate
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith(
 			"/api/Campaign/sendSMSConsentImmediate",
 			{ phone: "5551234567" },
@@ -78,17 +84,23 @@ describe("Additional Swagger Services Unit Tests", () => {
 			data: {},
 		});
 
-		await client.reconciliation.createAccountAgreement({ agreementId: "ag-1" } as any);
+		await client.reconciliation.createAccountAgreement({ agreementId: "ag-1" } as unknown as Parameters<
+			typeof client.reconciliation.createAccountAgreement
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith(
 			"/api/Agreement/createAccountAgreement",
 			{ agreementId: "ag-1" },
 			undefined
 		);
 
-		await client.orders.getOrderList({ orderId: "ord-1" } as any);
+		await client.orders.getOrderList({ orderId: "ord-1" } as unknown as Parameters<
+			typeof client.orders.getOrderList
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith("/api/Order/getOrderList", { orderId: "ord-1" }, undefined);
 
-		await client.iframe.getPortalUrl({ token: "tok-1" } as any);
+		await client.iframe.getPortalUrl({ token: "tok-1" } as unknown as Parameters<
+			typeof client.iframe.getPortalUrl
+		>[0]);
 		expect(postSpy).toHaveBeenCalledWith("/api/Iframe/getIframeUrl", { token: "tok-1" }, undefined);
 
 		postSpy.mockRestore();

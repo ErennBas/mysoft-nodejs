@@ -9,6 +9,7 @@ import {
 	ReceiptAdviceRequest,
 	ReceiptAdviceResponse,
 } from "../types/despatch.types";
+import { DateHelper } from "../utils/date-helper";
 
 /**
  * E-İrsaliye, Giden ve Gelen İrsaliye ve İrsaliye Yanıtları Servisi
@@ -38,9 +39,13 @@ export class DespatchService extends BaseService {
 	 * Gelen e-İrsaliye için GİB İrsaliye Yanıtı (Kabul, Red, Kısmi Kabul) oluşturur ve iletir.
 	 */
 	public async sendReceiptAdvice(request: ReceiptAdviceRequest): Promise<ApiResult<ReceiptAdviceResponse>> {
+		const payload = {
+			...request,
+			issueDate: DateHelper.toDateString(request.issueDate) || DateHelper.today(),
+		};
 		return await this.httpClient.post<ApiResult<ReceiptAdviceResponse>>(
 			"/api/ReceiptOutbox/receiptOutbox",
-			request
+			payload
 		);
 	}
 

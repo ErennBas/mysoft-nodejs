@@ -1,6 +1,6 @@
 {
 	"name": "mysoft-nodejs",
-	"version": "0.0.2-alpha.0",
+	"version": "0.0.4-alpha.0",
 	"description": "Mysoft GİB E-Dönüşüm (E-Fatura, E-Arşiv, E-İrsaliye, E-SMM, E-Defter vb.) REST API için modern Node.js & TypeScript SDK",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
@@ -29,6 +29,8 @@
 		"format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"*.ts\" \"*.mjs\" \"*.json\"",
 		"format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"*.ts\" \"*.mjs\" \"*.json\"",
 		"typecheck": "tsc --noEmit",
+		"new-version": "tsx scripts/bump-version.ts",
+		"bump-version": "tsx scripts/bump-version.ts",
 		"clean": "rimraf dist coverage"
 	},
 	"keywords": [

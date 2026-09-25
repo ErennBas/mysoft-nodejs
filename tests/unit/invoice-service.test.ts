@@ -215,4 +215,103 @@ describe("InvoiceService", () => {
 		expect(res.data?.uuid).toBe("draft-inv-uuid-1");
 		postSpy.mockRestore();
 	});
+
+	it("should automatically convert Date objects into formatted strings in sendInvoice", async () => {
+		const postSpy = vi.spyOn(client.httpClient, "post").mockResolvedValueOnce({
+			succeed: true,
+			data: {
+				invoiceETTN: "date-test-uuid",
+				docNo: "DAT2026000000001",
+			},
+		});
+
+		const issueDateObj = new Date(2026, 8, 25, 15, 45, 30); // 2026-09-25 15:45:30
+		const orderDateObj = new Date(2026, 8, 20); // 2026-09-20
+		const dueDateObj = new Date(2026, 9, 15); // 2026-10-15
+		const paymentDateObj = new Date(2026, 8, 24); // 2026-09-24
+
+		const res = await client.invoices.sendInvoice({
+			profile: "EARSIV",
+			type: "SATIS",
+			issueDate: issueDateObj,
+			issueTime: issueDateObj,
+			buyer: {
+				vknTckn: "11111111111",
+				title: "Date Test Alıcı",
+			},
+			orderReference: {
+				orderId: "ORD-999",
+				issueDate: orderDateObj,
+			},
+			paymentInfo: {
+				dueDate: dueDateObj,
+			},
+			internetSalesInfo: {
+				webAddress: "https://test.com",
+				paymentType: "KREDIKARTI/BANKAKARTI",
+				paymentDate: paymentDateObj,
+				cargoFirmTitle: "Test Kargo",
+				cargoFirmVknTckn: "1234567890",
+			},
+			lines: [
+				{
+					name: "Test Ürün",
+					quantity: 1,
+					unitCode: "C62",
+					unitPrice: 100,
+					vatRate: 20,
+				},
+			],
+		});
+
+		expect(postSpy).toHaveBeenCalledWith(
+			"/api/InvoiceOutbox/invoiceOutbox",
+			expect.objectContaining({
+				docDate: "2026-09-25",
+				docTime: "15:45:30",
+				orderDate: "2026-09-20",
+				paymentInfo: expect.objectContaining({
+					dueDate: "2026-10-15",
+				}),
+				internetShipmentInfo: expect.objectContaining({
+					paymentDate: "2026-09-24",
+				}),
+			})
+		);
+		expect(res.succeed).toBe(true);
+		postSpy.mockRestore();
+	});
+
+	it("should support Date objects in getInboxInvoicesForPeriod and cancelEArchiveInvoice", async () => {
+		const getSpy = vi.spyOn(client.httpClient, "get").mockResolvedValueOnce({
+			succeed: true,
+			data: [],
+		});
+
+		await client.invoices.getInboxInvoicesForPeriod(new Date(2026, 0, 1), new Date(2026, 0, 31));
+		expect(getSpy).toHaveBeenCalledWith(
+			"/api/InvoiceInbox/getInvoiceInboxListForPeriod?startDate=2026-01-01&endDate=2026-01-31"
+		);
+		getSpy.mockRestore();
+
+		const postSpy = vi.spyOn(client.httpClient, "post").mockResolvedValueOnce({
+			succeed: true,
+			data: { uuid: "cancel-uuid", succeed: true },
+		});
+
+		await client.invoices.cancelEArchiveInvoice({
+			uuid: "cancel-uuid",
+			cancelReason: "Hatalı fatura",
+			cancelDate: new Date(2026, 8, 25),
+		});
+
+		expect(postSpy).toHaveBeenCalledWith(
+			"/api/InvoiceOutbox/cancelEArchiveInvoice",
+			expect.objectContaining({
+				uuid: "cancel-uuid",
+				cancelDate: "2026-09-25",
+			})
+		);
+		postSpy.mockRestore();
+	});
 });

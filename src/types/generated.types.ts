@@ -1814,7 +1814,7 @@ export interface BillDocumentOutboxModel {
 	/** e-adisyon belgesine eklenen belge tipinin detay tipini belirtir. invoiceETTNType = ETTN için EFATURA yada EARSIV_FATURA, 
  invoiceETTNType = OKC_SERI_NO için SATIS_FISI yazılmalıdır. */
 	invoiceETTNDescription?: string | null;
-	/** invoiceETTNType = ETTN olması durumunda, Hizmet sürecinde adisyon belgesinden sonra e-fatura veya e-arşiv fatura oluşması durumunda  (konaklama vs gibi) oluşacak olan faturanın ETTN bilgisi adisyon belgesi üzerinde yazılmalıdır. Adisyon süreci sonrasında oluşacak Faturaların ETTN leri adisyon üzerine bu alana yazılan fatura ETTN leri ile oluşturulması zorunludur. invoiceETTNType = OKC_SERI_NO olması durumunda ise OKC cihazının seri numarası yazılır. */
+	/** invoiceETTNType = ETTN olması durumunda, Hizmet sürecinde adisyon belgesinden sonra e-fatura veya e-arşiv fatura oluşması durumunda (konaklama vs gibi) oluşacak olan faturanın ETTN bilgisi adisyon belgesi üzerinde yazılmalıdır. Adisyon süreci sonrasında oluşacak Faturaların ETTN leri adisyon üzerine bu alana yazılan fatura ETTN leri ile oluşturulması zorunludur. invoiceETTNType = OKC_SERI_NO olması durumunda ise OKC cihazının seri numarası yazılır. */
 	invoiceETTN?: string | null;
 	/** Yazar kasa fiş numarası */
 	receiptNumber?: string | null;

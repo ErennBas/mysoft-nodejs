@@ -35,8 +35,8 @@ export interface SendVoucherJsonRequest {
 	voucherNumber?: string;
 	/** Seri / Ön Ek */
 	prefix?: string;
-	/** Belge Düzenleme Tarihi (YYYY-MM-DD) */
-	issueDate: string;
+	/** Belge Düzenleme Tarihi (YYYY-MM-DD veya Date nesnesi) */
+	issueDate: string | Date;
 	/** Para Birimi */
 	currencyCode?: CurrencyCode | string;
 	/** Müşteri / Hizmet Alan Bilgileri */
