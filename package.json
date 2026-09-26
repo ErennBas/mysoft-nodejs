@@ -52,16 +52,16 @@
 		"typescript",
 		"nodejs"
 	],
-	"author": "Eren Baş <erenbas.info@gmail.com> (https://github.com/erennbas)",
+	"author": "Eren Baş <erenbas.info@gmail.com> (https://github.com/ErennBas)",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/erennbas/mysoft-nodejs.git"
+		"url": "git+https://github.com/ErennBas/mysoft-nodejs.git"
 	},
 	"bugs": {
-		"url": "https://github.com/erennbas/mysoft-nodejs/issues"
+		"url": "https://github.com/ErennBas/mysoft-nodejs/issues"
 	},
-	"homepage": "https://github.com/erennbas/mysoft-nodejs#readme",
+	"homepage": "https://github.com/ErennBas/mysoft-nodejs#readme",
 	"dependencies": {
 		"fflate": "^0.8.2"
 	},
