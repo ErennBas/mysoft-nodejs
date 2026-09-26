@@ -3,7 +3,7 @@ import { SDK_VERSION, MYSOFT_URLS, DEFAULT_CONFIG } from "../../src";
 
 describe("Mysoft SDK Smoke Test", () => {
 	it("should export correct SDK version", () => {
-		expect(SDK_VERSION).toBe("1.0.0");
+		expect(SDK_VERSION).toBe("1.0.1");
 	});
 
 	it("should export correct URLs", () => {
