@@ -1,7 +1,8 @@
 # mysoft-nodejs
 
 [![npm version](https://img.shields.io/npm/v/mysoft-nodejs.svg)](https://www.npmjs.com/package/mysoft-nodejs)
-[![CI](https://github.com/erennbas/mysoft-nodejs/actions/workflows/test.yml/badge.svg)](https://github.com/erennbas/mysoft-nodejs/actions/workflows/test.yml)
+[![Socket Badge](https://badge.socket.dev/npm/package/mysoft-nodejs/1.0.1)](https://badge.socket.dev/npm/package/mysoft-nodejs/1.0.1)
+[![CI](https://github.com/ErennBas/mysoft-nodejs/actions/workflows/test.yml/badge.svg)](https://github.com/ErennBas/mysoft-nodejs/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
 
