@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import axios from "axios";
 import { WebhookForwarder } from "../../src/watcher/webhook-forwarder";
 import * as crypto from "crypto";
 
@@ -31,7 +30,12 @@ describe("WebhookForwarder Tests", () => {
 	});
 
 	it("should dispatch webhook POST request with proper headers", async () => {
-		const postSpy = vi.spyOn(axios, "post").mockResolvedValue({ status: 200, data: { ok: true } });
+		const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ ok: true }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			})
+		);
 
 		const endpoints = [
 			{
@@ -46,21 +50,23 @@ describe("WebhookForwarder Tests", () => {
 
 		expect(results).toHaveLength(1);
 		expect(results[0].success).toBe(true);
-		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-		const [url, body, config] = postSpy.mock.calls[0];
+		const [url, init] = fetchSpy.mock.calls[0];
 		expect(url).toBe("https://erp.example.com/webhook");
+		expect(init?.method).toBe("POST");
 
-		const parsedBody = JSON.parse(body as string);
+		const parsedBody = JSON.parse(init?.body as string);
 		expect(parsedBody.event).toBe("invoice.received");
 		expect(parsedBody.data).toEqual(item);
 
-		expect(config?.headers?.["X-Custom-Auth"]).toBe("bearer-token");
-		expect(config?.headers?.["X-Mysoft-Signature"]).toMatch(/^sha256=[a-f0-9]{64}$/);
+		const headers = init?.headers as Record<string, string>;
+		expect(headers["X-Custom-Auth"]).toBe("bearer-token");
+		expect(headers["X-Mysoft-Signature"]).toMatch(/^sha256=[a-f0-9]{64}$/);
 	});
 
 	it("should handle failures and return error status", async () => {
-		vi.spyOn(axios, "post").mockRejectedValue(new Error("Connection refused"));
+		vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Connection refused"));
 
 		const endpoints = [{ url: "https://invalid-erp.example.com/webhook", retries: 0 }];
 

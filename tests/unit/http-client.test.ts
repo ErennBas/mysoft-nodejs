@@ -3,7 +3,6 @@ import { HttpClient, ITokenProvider } from "../../src/core/http-client";
 import { resolveConfig } from "../../src/core/config";
 import { MYSOFT_URLS, DEFAULT_CONFIG } from "../../src/core/constants";
 import { MysoftAuthError, MysoftApiError, MysoftNetworkError } from "../../src/errors";
-import { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 describe("HttpClient & Config", () => {
 	describe("resolveConfig", () => {
@@ -52,7 +51,7 @@ describe("HttpClient & Config", () => {
 		});
 	});
 
-	describe("HttpClient Interceptors & Requests", () => {
+	describe("HttpClient Requests & Resilience (Native Fetch)", () => {
 		const resolvedConfig = resolveConfig({
 			clientId: "mock_client",
 			clientSecret: "mock_secret",
@@ -69,27 +68,22 @@ describe("HttpClient & Config", () => {
 			client = new HttpClient(resolvedConfig, mockTokenProvider);
 		});
 
-		it("should create axios instance with default baseUrl and headers", () => {
-			const instance = client.getAxiosInstance();
-			expect(instance.defaults.baseURL).toBe(MYSOFT_URLS.TEST);
-			expect(instance.defaults.timeout).toBe(DEFAULT_CONFIG.TIMEOUT_MS);
-			expect(instance.defaults.headers["Content-Type"]).toBe("application/json");
+		it("should configure baseUrl and timeout properly", () => {
+			expect(client.getBaseUrl()).toBe(MYSOFT_URLS.TEST);
+			expect(client.getTimeout()).toBe(DEFAULT_CONFIG.TIMEOUT_MS);
 		});
 
-		it("should inject Bearer token into requests via Request Interceptor", async () => {
-			const axiosInstance = client.getAxiosInstance();
+		it("should inject Bearer token into requests automatically", async () => {
 			let capturedAuthHeader: string | undefined;
 
-			axiosInstance.defaults.adapter = async (config) => {
-				capturedAuthHeader = config.headers.Authorization as string;
-				return {
-					data: { succeed: true, data: "ok" },
+			client.setCustomFetch(async (_input, init) => {
+				const headers = init?.headers as Record<string, string>;
+				capturedAuthHeader = headers["Authorization"];
+				return new Response(JSON.stringify({ succeed: true, data: "ok" }), {
 					status: 200,
-					statusText: "OK",
-					headers: {},
-					config,
-				};
-			};
+					headers: { "Content-Type": "application/json" },
+				});
+			});
 
 			const res = await client.get<{ succeed: boolean; data: string }>("/api/test");
 			expect(mockTokenProvider.getToken).toHaveBeenCalled();
@@ -98,19 +92,16 @@ describe("HttpClient & Config", () => {
 		});
 
 		it("should skip Bearer token when skipAuth is true", async () => {
-			const axiosInstance = client.getAxiosInstance();
 			let capturedAuthHeader: string | undefined;
 
-			axiosInstance.defaults.adapter = async (config) => {
-				capturedAuthHeader = config.headers.Authorization as string;
-				return {
-					data: { access_token: "xyz" },
+			client.setCustomFetch(async (_input, init) => {
+				const headers = init?.headers as Record<string, string>;
+				capturedAuthHeader = headers["Authorization"];
+				return new Response(JSON.stringify({ access_token: "xyz" }), {
 					status: 200,
-					statusText: "OK",
-					headers: {},
-					config,
-				};
-			};
+					headers: { "Content-Type": "application/json" },
+				});
+			});
 
 			const res = await client.post<{ access_token: string }>(
 				"/oauth/token",
@@ -123,40 +114,51 @@ describe("HttpClient & Config", () => {
 			expect(res).toEqual({ access_token: "xyz" });
 		});
 
+		it("should format URL query parameters correctly", async () => {
+			let capturedUrl = "";
+
+			client.setCustomFetch(async (input) => {
+				capturedUrl = String(input);
+				return new Response(JSON.stringify({ ok: true }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				});
+			});
+
+			await client.get("/api/query", {
+				params: {
+					vkn: "1234567890",
+					active: true,
+					limit: 10,
+				},
+			});
+
+			expect(capturedUrl).toContain("vkn=1234567890");
+			expect(capturedUrl).toContain("active=true");
+			expect(capturedUrl).toContain("limit=10");
+		});
+
 		it("should automatically retry request once upon 401 Unauthorized", async () => {
-			const axiosInstance = client.getAxiosInstance();
 			let requestCount = 0;
 			const tokensUsed: (string | undefined)[] = [];
 
-			axiosInstance.defaults.adapter = async (config) => {
+			client.setCustomFetch(async (_input, init) => {
 				requestCount++;
-				tokensUsed.push(config.headers.Authorization as string | undefined);
+				const headers = init?.headers as Record<string, string>;
+				tokensUsed.push(headers["Authorization"]);
 
 				if (requestCount === 1) {
-					const error = new AxiosError(
-						"Request failed with status code 401",
-						"ERR_BAD_REQUEST",
-						config,
-						{},
-						{
-							status: 401,
-							statusText: "Unauthorized",
-							data: { error_description: "The token is expired." },
-							headers: {},
-							config,
-						}
-					);
-					throw error;
+					return new Response(JSON.stringify({ error_description: "The token is expired." }), {
+						status: 401,
+						headers: { "Content-Type": "application/json" },
+					});
 				}
 
-				return {
-					data: { succeed: true, result: "retried_successfully" },
+				return new Response(JSON.stringify({ succeed: true, result: "retried_successfully" }), {
 					status: 200,
-					statusText: "OK",
-					headers: {},
-					config,
-				};
-			};
+					headers: { "Content-Type": "application/json" },
+				});
+			});
 
 			(mockTokenProvider.getToken as ReturnType<typeof vi.fn>)
 				.mockResolvedValueOnce("expired_token")
@@ -172,64 +174,53 @@ describe("HttpClient & Config", () => {
 			expect(result).toEqual({ succeed: true, result: "retried_successfully" });
 		});
 
-		it("should transform Axios network timeout error to MysoftNetworkError", () => {
-			const timeoutError = new AxiosError("timeout of 30000ms exceeded", "ECONNABORTED", {
-				url: "/api/invoice",
-				method: "POST",
-			} as InternalAxiosRequestConfig);
+		it("should transform network timeout error to MysoftNetworkError", () => {
+			const timeoutError = new Error("The operation was aborted due to timeout");
+			timeoutError.name = "AbortError";
 
-			const transformed = client.handleError(timeoutError);
+			const transformed = client.handleError(timeoutError, { url: "/api/invoice", method: "POST" });
 			expect(transformed instanceof MysoftNetworkError).toBe(true);
 			const netErr = transformed as MysoftNetworkError;
 			expect(netErr.isTimeout).toBe(true);
 			expect(netErr.endpoint).toBe("/api/invoice");
 		});
 
-		it("should transform Axios 401 error to MysoftAuthError", () => {
-			const authError = new AxiosError(
-				"Unauthorized",
-				"ERR_BAD_REQUEST",
-				{ url: "/api/invoice", method: "GET" } as InternalAxiosRequestConfig,
-				{},
-				{
+		it("should transform 401 response to MysoftAuthError", async () => {
+			client.setCustomFetch(async () => {
+				return new Response(JSON.stringify({ error_description: "Token geçersiz" }), {
 					status: 401,
-					statusText: "Unauthorized",
-					data: { error_description: "Token geçersiz" },
-					headers: {},
-					config: {} as InternalAxiosRequestConfig,
-				}
-			);
+					headers: { "Content-Type": "application/json" },
+				});
+			});
 
-			const transformed = client.handleError(authError);
-			expect(transformed instanceof MysoftAuthError).toBe(true);
-			expect(transformed.message).toBe("Token geçersiz");
+			await expect(client.get("/api/invoice", { skipRetry: true })).rejects.toThrow(MysoftAuthError);
 		});
 
-		it("should transform Axios 400 error with validation messages to MysoftApiError", () => {
-			const apiError = new AxiosError(
-				"Bad Request",
-				"ERR_BAD_REQUEST",
-				{ url: "/api/send", method: "POST" } as InternalAxiosRequestConfig,
-				{},
-				{
-					status: 400,
-					statusText: "Bad Request",
-					data: {
+		it("should transform 400 error with validation messages to MysoftApiError", async () => {
+			client.setCustomFetch(async () => {
+				return new Response(
+					JSON.stringify({
 						message: "Fatura doğrulanamadı",
 						errorCode: "INV_001",
 						errors: { prefix: ["Prefix 3 karakter olmalıdır"] },
-					},
-					headers: {},
-					config: {} as InternalAxiosRequestConfig,
-				}
-			);
+					}),
+					{
+						status: 400,
+						headers: { "Content-Type": "application/json" },
+					}
+				);
+			});
 
-			const transformed = client.handleError(apiError);
-			expect(transformed instanceof MysoftApiError).toBe(true);
-			const mysoftErr = transformed as MysoftApiError;
-			expect(mysoftErr.message).toBe("Fatura doğrulanamadı");
-			expect(mysoftErr.errorCode).toBe("INV_001");
-			expect(mysoftErr.statusCode).toBe(400);
+			try {
+				await client.post("/api/send", {});
+				expect.fail("Should have thrown error");
+			} catch (err) {
+				expect(err instanceof MysoftApiError).toBe(true);
+				const mysoftErr = err as MysoftApiError;
+				expect(mysoftErr.message).toBe("Fatura doğrulanamadı");
+				expect(mysoftErr.errorCode).toBe("INV_001");
+				expect(mysoftErr.statusCode).toBe(400);
+			}
 		});
 	});
 });

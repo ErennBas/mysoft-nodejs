@@ -63,7 +63,6 @@
 	},
 	"homepage": "https://github.com/erennbas/mysoft-nodejs#readme",
 	"dependencies": {
-		"axios": "^1.7.9",
 		"fflate": "^0.8.2"
 	},
 	"peerDependencies": {
