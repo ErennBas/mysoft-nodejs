@@ -1,4 +1,4 @@
-import { zipSync, unzipSync, strToU8, strFromU8 } from "fflate";
+import { ZipHelper } from "./zip-helper";
 import { UuidHelper } from "./uuid";
 
 /**
@@ -36,12 +36,11 @@ export class UblHelper {
 			targetFileName = `${targetFileName}.xml`;
 		}
 
-		const xmlBytes = strToU8(xmlContent);
-		const zippedBytes = zipSync({
-			[targetFileName]: xmlBytes,
+		const zipBuffer = ZipHelper.createZip({
+			[targetFileName]: xmlContent,
 		});
 
-		return Buffer.from(zippedBytes).toString("base64");
+		return zipBuffer.toString("base64");
 	}
 
 	/**
@@ -62,8 +61,8 @@ export class UblHelper {
 			throw new Error("Geçerli bir Base64 ZIP metni sağlanmalıdır.");
 		}
 
-		const zipBytes = new Uint8Array(Buffer.from(base64ZipString.trim(), "base64"));
-		const unzipped = unzipSync(zipBytes);
+		const zipBytes = Buffer.from(base64ZipString.trim(), "base64");
+		const unzipped = ZipHelper.extractZip(zipBytes);
 
 		const fileNames = Object.keys(unzipped);
 		if (fileNames.length === 0) {
@@ -74,7 +73,7 @@ export class UblHelper {
 		const xmlFileName = fileNames.find((name) => name.toLowerCase().endsWith(".xml")) || fileNames[0];
 		const fileBytes = unzipped[xmlFileName];
 
-		return strFromU8(fileBytes);
+		return fileBytes.toString("utf8");
 	}
 
 	/**
