@@ -62,9 +62,6 @@
 		"url": "https://github.com/ErennBas/mysoft-nodejs/issues"
 	},
 	"homepage": "https://github.com/ErennBas/mysoft-nodejs#readme",
-	"dependencies": {
-		"fflate": "^0.8.2"
-	},
 	"peerDependencies": {
 		"ioredis": "^5.4.2"
 	},
