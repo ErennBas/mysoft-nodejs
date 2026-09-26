@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-export const SDK_VERSION = "0.0.4-alpha.1";
+export const SDK_VERSION = "1.0.0";
 
 export * from "./client";
 export * from "./core";
