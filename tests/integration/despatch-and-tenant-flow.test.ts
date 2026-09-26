@@ -13,7 +13,7 @@ describe("Integration: Despatch and Tenant Flow", () => {
 		});
 
 		const mockApi = setupStandardMockApi();
-		mockApi.attachTo(client.httpClient.getAxiosInstance());
+		mockApi.attachTo(client.httpClient);
 	});
 
 	it("should send despatch and receive receipt advice successfully", async () => {

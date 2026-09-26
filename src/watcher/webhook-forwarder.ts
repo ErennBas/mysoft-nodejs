@@ -1,5 +1,4 @@
 import * as crypto from "crypto";
-import axios from "axios";
 import { WebhookEndpointConfig } from "./types";
 
 export interface WebhookPayload<T = unknown> {
@@ -102,11 +101,17 @@ export class WebhookForwarder {
 
 		for (let attempt = 0; attempt <= retries; attempt++) {
 			try {
-				await axios.post(endpoint.url, bodyString, {
+				const response = await fetch(endpoint.url, {
+					method: "POST",
 					headers,
-					timeout,
-					transformResponse: [(d) => d], // Ham yanıt
+					body: bodyString,
+					signal: AbortSignal.timeout(timeout),
 				});
+
+				if (!response.ok) {
+					throw new Error(`Webhook isteği HTTP ${response.status} koduyla başarısız oldu.`);
+				}
+
 				return;
 			} catch (err) {
 				lastError = err as Error;

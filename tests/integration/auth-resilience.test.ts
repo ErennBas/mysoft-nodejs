@@ -15,7 +15,7 @@ describe("Integration: Auth Resilience and Transparent 401 Retry", () => {
 		});
 
 		mockApi = new MockMysoftApi();
-		mockApi.attachTo(client.httpClient.getAxiosInstance());
+		mockApi.attachTo(client.httpClient);
 	});
 
 	it("should transparently refresh token and retry request when receiving 401 Unauthorized", async () => {

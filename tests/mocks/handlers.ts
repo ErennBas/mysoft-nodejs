@@ -65,7 +65,7 @@ export function setupStandardMockApi(): MockMysoftApi {
 
 	// 3. Fatura Gönderme (JSON ve UBL XML)
 	mockApi.on("POST", "/api/InvoiceOutbox/invoiceOutbox", (config) => {
-		const body = JSON.parse(config.data || "{}");
+		const body = typeof config.data === "string" ? JSON.parse(config.data || "{}") : config.data || {};
 		return [
 			200,
 			{
@@ -81,7 +81,7 @@ export function setupStandardMockApi(): MockMysoftApi {
 	});
 
 	mockApi.on("POST", "/api/Invoice/invoiceDraft", (config) => {
-		const body = JSON.parse(config.data || "{}");
+		const body = typeof config.data === "string" ? JSON.parse(config.data || "{}") : config.data || {};
 		return [
 			200,
 			{

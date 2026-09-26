@@ -15,7 +15,7 @@ describe("Integration: Invoice Lifecycle Flow", () => {
 		});
 
 		mockApi = setupStandardMockApi();
-		mockApi.attachTo(client.httpClient.getAxiosInstance());
+		mockApi.attachTo(client.httpClient);
 	});
 
 	it("should execute end-to-end invoice flow seamlessly", async () => {
@@ -53,7 +53,7 @@ describe("Integration: Invoice Lifecycle Flow", () => {
 		expect(sendRes.data?.invoiceNumber).toBe("MYF2026000000001");
 
 		// İstek loglarında token alındığı ve faturanın gönderildiği doğrulanır
-		const oauthReq = mockApi.requestLog.find((r) => r.url === "/oauth/token");
+		const oauthReq = mockApi.requestLog.find((r) => r.url.includes("/oauth/token"));
 		expect(oauthReq).toBeDefined();
 
 		const invoiceReq = mockApi.requestLog.find((r) => r.url.includes("invoiceOutboxWithUblXml"));
